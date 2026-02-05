@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .student-card {
+        border-left: 4px solid #007bff;
+    }
+    .attendance-timeline {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .timeline-item {
+        border-left: 3px solid #dee2e6;
+        padding-left: 15px;
+        margin-bottom: 15px;
+    }
+    .timeline-item.present { border-left-color: #28a745; }
+    .timeline-item.absent { border-left-color: #dc3545; }
+    .timeline-item.late { border-left-color: #ffc107; }
+    .timeline-item.excused { border-left-color: #17a2b8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-user-graduate"></i> {{ title }}</h2>
+                <div class="btn-group">
+                    {% if selected_student %}
+                    <a href="{% url 'export_report_csv' %}?type=summary&student={{ selected_student.id }}&start_date={{ start_date }}&end_date={{ end_date }}"
+                       class="btn btn-success">
+                        <i class="fas fa-file-export me-1"></i> Export Report
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'detailed_reports' %}" class="btn btn-primary">
+                        <i class="fas fa-chart-bar me-1"></i> Detailed Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Selection Form -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>Select Student</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Student</label>
+                            <select class="form-select" name="student_id" required>
+                                <option value="">-- Select Student --</option>
+                                {% for student in students %}
+                                <option value="{{ student.id }}" {% if student_id == student.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ student.student_id }} - {{ student.first_name }} {{ student.last_name }} (Year {{ student.year }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+                        </div>
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-between mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i> Generate Report
+                                </button>
+                                <a href="{% url 'student_wise_reports' %}" class="btn btn-secondary">
+                                    <i class="fas fa-redo me-1"></i> Reset
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Instructions</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Select a student from the dropdown</li>
+                        <li>Optionally set date range</li>
+                        <li>Click "Generate Report"</li>
+                        <li>Export report as CSV if needed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if selected_student %}
+    <!-- Student Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card student-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h5>Student Information</h5>
+                            <p class="mb-1"><strong>ID:</strong> {{ selected_student.student_id }}</p>
+                            <p class="mb-1"><strong>Name:</strong> {{ selected_student.first_name }} {{ selected_student.last_name }}</p>
+                            <p class="mb-1"><strong>Year:</strong> Year {{ selected_student.year }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h5>Contact Info</h5>
+                            <p class="mb-1"><strong>Email:</strong> {{ selected_student.email|default:"Not provided" }}</p>
+                            <p class="mb-1"><strong>Phone:</strong> {{ selected_student.phone|default:"Not provided" }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h5>Class Information</h5>
+                            <p class="mb-1"><strong>Class Teacher:</strong>
+                                {% if selected_student.class_teacher %}
+                                {{ selected_student.class_teacher.get_full_name|default:selected_student.class_teacher.username }}
+                                {% else %}
+                                Not assigned
+                                {% endif %}
+                            </p>
+                            <p class="mb-1"><strong>Year Name:</strong> {{ selected_student.get_year_display }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h5>Report Period</h5>
+                            <p class="mb-1"><strong>From:</strong> {{ summary.start_date|default:"Start date" }}</p>
+                            <p class="mb-1"><strong>To:</strong> {{ summary.end_date|default:"End date" }}</p>
+                            <p class="mb-0"><strong>Days Covered:</strong> {{ summary.total_days }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h6>Total Days</h6>
+                    <h2 class="display-6">{{ summary.total_days }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h6>Present Days</h6>
+                    <h2 class="display-6">{{ summary.present_days }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h6>Absent Days</h6>
+                    <h2 class="display-6">{{ summary.absent_days }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h6>Attendance %</h6>
+                    <h2 class="display-6">{{ summary.attendance_percentage }}%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Attendance -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Attendance History ({{ attendance_records.count }} records)
+                    </h5>
+                </div>
+                <div class="card-body attendance-timeline">
+                    {% if attendance_records %}
+                    {% for attendance in attendance_records %}
+                    <div class="timeline-item {{ attendance.status }}">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="mb-1">
+                                {{ attendance.date|date:"F d, Y" }} ({{ attendance.date|date:"l" }})
+                            </h6>
+                            <span class="badge
+                                {% if attendance.status == 'present' %}bg-success
+                                {% elif attendance.status == 'absent' %}bg-danger
+                                {% elif attendance.status == 'late' %}bg-warning
+                                {% else %}bg-info{% endif %}">
+                                {{ attendance.status|title }}
+                            </span>
+                        </div>
+                        {% if attendance.remarks %}
+                        <p class="mb-1 text-muted">
+                            <i class="fas fa-comment me-1"></i>{{ attendance.remarks }}
+                        </p>
+                        {% endif %}
+                        <small class="text-muted">
+                            Marked by: {{ attendance.marked_by.username }} at {{ attendance.created_at|time }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Attendance Records</h5>
+                        <p class="text-muted">No attendance records found for the selected period.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Attendance Statistics -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Attendance Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Present: {{ summary.present_days }}</h6>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" style="width:
+                                {% if summary.total_days > 0 %}
+                                {{ summary.present_days|floatformat:2 }}
+                                {% else %}0{% endif %}%">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Absent: {{ summary.absent_days }}</h6>
+                        <div class="progress">
+                            <div class="progress-bar bg-danger" style="width:
+                                {% if summary.total_days > 0 %}
+                                {{ summary.absent_days|floatformat:2 }}
+                                {% else %}0{% endif %}%">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Late: {{ summary.l

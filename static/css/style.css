@@ -1,0 +1,198 @@
+/* Additional styles for JavaScript features */
+
+/* Clickable rows */
+tr[data-href] {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+tr[data-href]:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Attendance status colors */
+.present {
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.absent {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.late {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.excused {
+    background-color: rgba(23, 162, 184, 0.1);
+}
+
+/* Stats cards hover effect */
+.stats-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* Progress bar animations */
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* Notification styles */
+.custom-notification {
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Loading spinner */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+/* Activity items */
+.activity-item {
+    padding: 10px;
+    border-left: 3px solid #007bff;
+    background-color: #f8f9fa;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Filter styles */
+.filter-container {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+/* Responsive tables */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+
+    .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+/* ========== JavaScript Enhanced Styles ========== */
+
+/* Clickable table rows */
+tr[data-href] {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+tr[data-href]:hover {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+}
+
+/* Stats cards hover effect */
+.stats-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+/* Fixed notifications */
+.alert.position-fixed {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+}
+
+/* Progress bar animations */
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* Attendance status colors */
+.table-success {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+.table-danger {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.table-warning {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.table-info {
+    background-color: rgba(23, 162, 184, 0.1) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+    
+    .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Loading spinner */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+/* Search highlight */
+.highlight {
+    background-color: #fff3cd;
+    font-weight: bold;
+}
+
+/* Animation for notifications */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.alert.position-fixed {
+    animation: slideIn 0.3s ease;
+}

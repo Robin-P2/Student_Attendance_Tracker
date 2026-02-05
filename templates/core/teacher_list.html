@@ -1,0 +1,90 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-chalkboard-teacher"></i> {{ title }}</h2>
+            <a href="{% url 'add_teacher' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Add Teacher
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                {% if teachers %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Username</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Assigned Year</th>
+                                <th>Students</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for teacher in teachers %}
+                            <tr>
+                                <td>{{ teacher.username }}</td>
+                                <td>{{ teacher.get_full_name|default:"Not set" }}</td>
+                                <td>{{ teacher.email|default:"Not set" }}</td>
+                                <td>
+                                    {% if teacher.assigned_year_name != 'Not Assigned' %}
+                                    <span class="badge bg-primary">
+                                        {{ teacher.assigned_year_name }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">Not Assigned</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ teacher.student_count }} students
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'edit_teacher' teacher.id %}" class="btn btn-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <!-- CHANGED: assign_year_to_teacher → assign_year -->
+                                        <a href="{% url 'assign_year' teacher.id %}" class="btn btn-success">
+                                            <i class="fas fa-calendar-alt"></i>
+                                        </a>
+                                        <a href="{% url 'delete_teacher' teacher.id %}" class="btn btn-danger"
+                                           onclick="return confirm('Are you sure you want to delete {{ teacher.username }}?')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-chalkboard-teacher fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No teachers found.</h5>
+                    <p class="text-muted">
+                        Add teachers to manage different years.
+                    </p>
+                    <a href="{% url 'add_teacher' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add First Teacher
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .calendar-container {
+        overflow-x: auto;
+    }
+    .student-row {
+        border-bottom: 1px solid #dee2e6;
+    }
+    .student-info {
+        min-width: 200px;
+        background: #f8f9fa;
+        padding: 10px;
+        position: sticky;
+        left: 0;
+        z-index: 1;
+    }
+    .day-cell {
+        width: 40px;
+        height: 40px;
+        text-align: center;
+        vertical-align: middle;
+        border: 1px solid #dee2e6;
+        font-size: 12px;
+    }
+    .day-header {
+        background: #007bff;
+        color: white;
+        font-weight: bold;
+        padding: 5px;
+        text-align: center;
+        min-width: 40px;
+    }
+    .attendance-present {
+        background-color: #28a745;
+        color: white;
+    }
+    .attendance-absent {
+        background-color: #dc3545;
+        color: white;
+    }
+    .attendance-late {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    .attendance-excused {
+        background-color: #17a2b8;
+        color: white;
+    }
+    .attendance-none {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+    .month-nav {
+        background: #007bff;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    .percentage-badge {
+        font-size: 0.8em;
+        padding: 2px 6px;
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Month Navigation -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-0">
+                                <i class="fas fa-calendar-alt me-2"></i>
+                                {{ month_name }} {{ report_year }}
+                            </h3>
+                            <p class="text-muted mb-0">Student Attendance Calendar</p>
+                        </div>
+
+                        <div class="btn-group">
+                            <a href="?month={{ prev_month }}&year={{ prev_year }}"
+                               class="btn btn-outline-primary">
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </a>
+
+                            <!-- Month/Year Selector -->
+                            <div class="btn-group">
+                                <select class="form-select" id="monthSelect" style="width: auto;">
+                                    {% for num, name in month_names %}
+                                    <option value="{{ num }}" {% if report_month == num %}selected{% endif %}>
+                                        {{ name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <select class="form-select" id="yearSelect" style="width: auto;">
+                                    {% for year in year_range %}
+                                    <option value="{{ year }}" {% if report_year == year %}selected{% endif %}>
+                                        {{ year }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <button class="btn btn-primary" onclick="goToMonth()">
+                                    <i class="fas fa-search"></i> Go
+                                </button>
+                            </div>
+
+                            <a href="?month={{ next_month }}&year={{ next_year }}"
+                               class="btn btn-outline-primary">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-success me-2">
+                            <i class="fas fa-check"></i> Present
+                        </span>
+                        <span class="badge bg-danger me-2">
+                            <i class="fas fa-times"></i> Absent
+                        </span>
+                        <span class="badge bg-warning me-2">
+                            <i class="fas fa-clock"></i> Late
+                        </span>
+                        <span class="badge bg-info me-2">
+                            <i class="fas fa-umbrella"></i> Excused
+                        </span>
+                        <span class="badge bg-secondary me-2">
+                            <i class="fas fa-minus"></i> No Record
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="calendar-container">
+                        <table class="table table-bordered mb-0">
+                            <!-- Day Headers -->
+                            <thead>
+                                <tr>
+                                    <th class="student-info">Student</th>
+                                    {% for week in calendar %}
+                                        {% for day in week %}
+                                            {% if day != 0 %}
+                                            <th class="day-header">{{ day }}</th>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                    <th class="day-header bg-dark text-white">%</th>
+                                </tr>
+                            </thead>
+
+                            <!-- Student Rows -->
+                            <tbody>
+                                {% for student_data in students_data %}
+                                <tr class="student-row">
+                                    <!-- Student Info -->
+                                    <td class="student-info">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ student_data.student.student_id }}</strong><br>
+                                                <small>{{ student_data.student.first_name }} {{ student_data.student.last_name }}</small><br>
+                                                <small class="text-muted">Year {{ student_data.student.year }}</small>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="badge
+                                                    {% if student_data.attendance_percentage >= 90 %}bg-success
+                                                    {% elif student_data.attendance_percentage >= 75 %}bg-info
+                                                    {% elif student_data.attendance_percentage >= 60 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}">
+                                                    {{ student_data.attendance_percentage }}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Attendance Days -->
+                                    {% for week in calendar %}
+                                        {% for day in week %}
+                                            {% if day != 0 %}
+                                            <td class="day-cell
+                                                {% if day in student_data.attendance_by_day %}
+                                                    {% if student_data.attendance_by_day.day.status == 'present' %}
+                                                        attendance-present
+                                                    {% elif student_data.attendance_by_day.day.status == 'absent' %}
+                                                        attendance-absent
+                                                    {% elif student_data.attendance_by_day.day.status == 'late' %}
+                                                        attendance-late
+                                                    {% elif student_data.attendance_by_day.day.status == 'excused' %}
+                                                        attendance-excused
+                                                    {% endif %}
+                                                {% else %}
+                                                    attendance-none
+                                                {% endif %}"
+                                                title="Day {{ day }}">
+
+                                                {% if day in student_data.attendance_by_day %}
+                                                    {% if student_data.attendance_by_day.day.status == 'present' %}
+                                                        <i class="fas fa-check"></i>
+                                                    {% elif student_data.attendance_by_day.day.status == 'absent' %}
+                                                        <i class="fas fa-times"></i>
+                                                    {% elif student_data.attendance_by_day.day.status == 'late' %}
+                                                        <i class="fas fa-clock"></i>
+                                                    {% elif student_data.attendance_by_day.day.status == 'excused' %}
+                                                        <i class="fas fa-umbrella"></i>
+                                                    {% endif %}
+                                                {% else %}
+                                                    {{ day }}
+                                                {% endif %}
+                                            </td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+
+                                    <!-- Percentage -->
+                                    <td class="text-center align-middle">
+                                        <strong>{{ student_data.attendance_percentage }}%</strong><br>
+                                        <small class="text-muted">
+                                            {{ student_data.present_days }}/{{ student_data.total_days }}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="32" class="text-center py-5">
+                                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                        <h5 class="text-muted">No Students Found</h5>
+                                        <p class="text-muted">
+                                            {% if not is_admin %}
+                                            No students assigned to you or no year assigned.
+                                            {% else %}
+                                            No students in the system.
+                                            {% endif %}
+                                        </p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>How to Read</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Each row represents one student</li>
+                        <li>Columns represent days of the month (1-31)</li>
+                        <li>Green = Present, Red = Absent, Yellow = Late, Blue = Excused</li>
+                        <li>Numbers show day of month when no attendance recorded</li>
+                        <li>Percentage column shows overall attendance for the month</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Month Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6>Total Students</h6>
+                            <h3>{{ students_data|length }}</h3>
+                        </div>
+                        <div class="col-6">
+                            <h6>Month</h6>
+                            <h3>{{ month_name }} {{ report_year }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function goToMonth() {
+        const month = document.getElementById('monthSelect').value;
+        const year = document.getElementById('yearSelect').value;
+        window.location.href = `?month=${month}&year=${year}`;
+    }
+
+    // Auto-submit on change
+    document.getElementById('monthSelect').addEventListener('change', goToMonth);
+    document.getElementById('yearSelect').addEventListener('change', goToMonth);
+</script>
+{% endblock %}

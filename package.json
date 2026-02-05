@@ -1,0 +1,11 @@
+{
+  "name": "student-attendance-tracker",
+  "version": "1.0.0",
+  "description": "Django Student Attendance Tracker",
+  "scripts": {
+    "build": "echo 'Building Django project...'"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

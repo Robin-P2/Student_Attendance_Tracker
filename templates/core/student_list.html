@@ -1,0 +1,131 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-user-graduate"></i> {{ title }}</h2>
+            <a href="{% url 'add_student' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Add Student
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="search"
+                                   placeholder="Search by Student ID, Name, or Email"
+                                   value="{{ search_query }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+
+                    {% if show_year_filter %}
+                    <div class="col-md-4">
+                        <select class="form-select" name="year">
+                            <option value="">All Years</option>
+                            {% for year_code, year_name in YEAR_CHOICES %}
+                            <option value="{{ year_code }}"
+                                    {% if year_filter == year_code %}selected{% endif %}>
+                                {{ year_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-md-2">
+                        <a href="{% url 'student_list' %}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-redo"></i> Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Students Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                {% if students %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Year</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Class Teacher</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>{{ student.student_id }}</td>
+                                <td>{{ student.full_name }}</td>
+                                <td>
+                                    <span class="badge bg-primary">
+                                        Year {{ student.year }}
+                                    </span>
+                                </td>
+                                <td>{{ student.email|default:"-" }}</td>
+                                <td>{{ student.phone|default:"-" }}</td>
+                                <td>
+                                    {% if student.class_teacher %}
+                                    {{ student.class_teacher.get_full_name|default:student.class_teacher.username }}
+                                    {% else %}
+                                    <span class="text-muted">Not assigned</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'edit_student' student.id %}" class="btn btn-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'delete_student' student.id %}" class="btn btn-danger"
+                                           onclick="return confirm('Are you sure you want to delete {{ student.full_name }}?')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No students found.</h5>
+                    <p class="text-muted">
+                        {% if not show_year_filter %}
+                        You don't have any students assigned to your year.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'add_student' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add First Student
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

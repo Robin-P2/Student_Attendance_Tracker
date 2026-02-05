@@ -1,0 +1,473 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .stat-card {
+        transition: all 0.3s;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .day-box {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 5px;
+        font-weight: bold;
+        margin: 2px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .day-box:hover {
+        transform: scale(1.1);
+    }
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-chart-line"></i> {{ title }}</h2>
+                <div class="btn-group">
+                    <a href="{% url 'detailed_reports' %}" class="btn btn-primary">
+                        <i class="fas fa-chart-bar me-1"></i> Detailed Reports
+                    </a>
+                    <a href="{% url 'monthly_reports' %}" class="btn btn-success">
+                        <i class="fas fa-calendar-alt me-1"></i> Monthly Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month/Year Selector -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar me-2"></i>Select Month for Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Year</label>
+                            <select class="form-select" name="year" id="yearSelect">
+                                {% for y in year_choices %}
+                                <option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Month</label>
+                            <select class="form-select" name="month" id="monthSelect">
+                                {% for code, name in month_choices %}
+                                <option value="{{ code }}" {% if month == code %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-line me-1"></i> Analyze
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Students</h6>
+                            <h2 class="display-6">{{ total_students }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Records</h6>
+                            <h2 class="display-6">{{ total_attendances }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-database fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Avg Daily %</h6>
+                            {% with total_percentage=0 %}
+                                {% for day, data in daily_data.items %}
+                                    {% widthratio data.percentage 1 1 as day_percentage %}
+                                    {% add total_percentage day_percentage as total_percentage %}
+                                {% endfor %}
+                                {% if daily_data %}
+                                    {% with avg_percentage=total_percentage|div:daily_data|length %}
+                                    <h2 class="display-6">{{ avg_percentage|floatformat:1 }}%</h2>
+                                    {% endwith %}
+                                {% else %}
+                                    <h2 class="display-6">0%</h2>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-percentage fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Best Day</h6>
+                            {% with best_day=0 best_percentage=0 %}
+                                {% for day, data in daily_data.items %}
+                                    {% if data.percentage > best_percentage %}
+                                        {% with best_day=day best_percentage=data.percentage %}
+                                        {% endwith %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if best_day > 0 %}
+                                    <h2 class="display-6">Day {{ best_day }}</h2>
+                                    <small>{{ best_percentage }}% attendance</small>
+                                {% else %}
+                                    <h2 class="display-6">N/A</h2>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-trophy fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Daily Attendance Trend</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Calendar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar me-2"></i>Monthly Attendance Calendar</h5>
+                </div>
+                <div class="card-body">
+                    <div class="calendar-grid">
+                        {% for day_num in "1234567" %}
+                            <div class="text-center fw-bold text-muted mb-2">
+                                {% if day_num == "1" %}Mon
+                                {% elif day_num == "2" %}Tue
+                                {% elif day_num == "3" %}Wed
+                                {% elif day_num == "4" %}Thu
+                                {% elif day_num == "5" %}Fri
+                                {% elif day_num == "6" %}Sat
+                                {% else %}Sun{% endif %}
+                            </div>
+                        {% endfor %}
+
+                        {% for day in "123456789"|make_list %}
+                            {% with day_num=forloop.counter %}
+                                {% if day_num in daily_data %}
+                                    {% with data=daily_data.day_num %}
+                                    <div class="day-box
+                                        {% if data.percentage >= 90 %}bg-success text-white
+                                        {% elif data.percentage >= 75 %}bg-info text-white
+                                        {% elif data.percentage >= 60 %}bg-warning
+                                        {% else %}bg-danger text-white{% endif %}"
+                                        title="Day {{ day_num }}: {{ data.percentage }}% ({{ data.present }}/{{ data.total }})">
+                                        {{ day_num }}
+                                    </div>
+                                    {% endwith %}
+                                {% else %}
+                                    <div class="day-box bg-light text-muted" title="Day {{ day_num }}: No data">
+                                        {{ day_num }}
+                                    </div>
+                                {% endif %}
+                            {% endwith %}
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <span class="badge bg-success">≥90%</span>
+                            <span class="badge bg-info">75-89%</span>
+                            <span class="badge bg-warning">60-74%</span>
+                            <span class="badge bg-danger">≤59%</span>
+                            <span class="badge bg-light">No data</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Statistics Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Daily Attendance Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Day</th>
+                                    <th>Total Students</th>
+                                    <th>Present</th>
+                                    <th>Attendance %</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for day_num, data in daily_data.items %}
+                                <tr>
+                                    <td>{{ data.date|date:"Y-m-d" }}</td>
+                                    <td>{{ data.date|date:"l" }}</td>
+                                    <td>{{ data.total }}</td>
+                                    <td>{{ data.present }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                                                <div class="progress-bar
+                                                    {% if data.percentage >= 90 %}bg-success
+                                                    {% elif data.percentage >= 75 %}bg-info
+                                                    {% elif data.percentage >= 60 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}"
+                                                    style="width: {{ data.percentage }}%">
+                                                </div>
+                                            </div>
+                                            <span>{{ data.percentage }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if data.percentage >= 90 %}
+                                        <span class="badge bg-success">Excellent</span>
+                                        {% elif data.percentage >= 75 %}
+                                        <span class="badge bg-info">Good</span>
+                                        {% elif data.percentage >= 60 %}
+                                        <span class="badge bg-warning">Fair</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Poor</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">No attendance data for selected month.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Prepare data for charts
+    const dailyData = {
+        days: [],
+        percentages: [],
+        presents: [],
+        totals: []
+    };
+
+    {% for day_num, data in daily_data.items %}
+    dailyData.days.push('{{ day_num }}');
+    dailyData.percentages.push({{ data.percentage }});
+    dailyData.presents.push({{ data.present }});
+    dailyData.totals.push({{ data.total }});
+    {% endfor %}
+
+    const statusData = {
+        present: {{ status_counts.present }},
+        absent: {{ status_counts.absent }},
+        late: {{ status_counts.late }},
+        excused: {{ status_counts.excused }}
+    };
+
+    // Initialize Daily Chart
+    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+    const dailyChart = new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: dailyData.days,
+            datasets: [{
+                label: 'Attendance Percentage',
+                data: dailyData.percentages,
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Attendance %'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Day of Month'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const day = context.label;
+                            const index = context.dataIndex;
+                            return [
+                                `Day ${day}: ${dailyData.percentages[index]}%`,
+                                `Present: ${dailyData.presents[index]} of ${dailyData.totals[index]}`
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Initialize Status Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusChart = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Present', 'Absent', 'Late', 'Excused'],
+            datasets: [{
+                data: [
+                    statusData.present,
+                    statusData.absent,
+                    statusData.late,
+                    statusData.excused
+                ],
+                backgroundColor: [
+                    '#28a745',
+                    '#dc3545',
+                    '#ffc107',
+                    '#17a2b8'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Auto-refresh when month/year changes
+    document.getElementById('monthSelect').addEventListener('change', function() {
+        this.form.submit();
+    });
+
+    document.getElementById('yearSelect').addEventListener('change', function() {
+        this.form.submit();
+    });
+</script>
+{% endblock %}

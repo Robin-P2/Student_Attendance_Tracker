@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <p><strong>Teacher:</strong> {{ teacher.username }}</p>
+                    <p><strong>Name:</strong> {{ teacher.first_name }} {{ teacher.last_name }}</p>
+                    <p><strong>Email:</strong> {{ teacher.email }}</p>
+                    <p><strong>Current Year:</strong>
+                        {% if profile.assigned_year %}
+                            Year {{ profile.assigned_year }}
+                        {% else %}
+                            <span class="text-muted">Not assigned</span>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="assigned_year" class="form-label">Assign New Year</label>
+                        <select class="form-select" id="assigned_year" name="assigned_year" required>
+                            <option value="">-- Select Year --</option>
+                            {% for code, name in YEAR_CHOICES %}
+                                <option value="{{ code }}" {% if profile.assigned_year == code %}selected{% endif %}>
+                                    {{ name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            Select the year this teacher will be responsible for.
+                            All students in this year will be assigned to this teacher.
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> Changing the year will reassign all students from the new year to this teacher,
+                        and remove this teacher from previous year assignments.
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'teacher_list' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Assign Year</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

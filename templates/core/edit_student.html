@@ -1,0 +1,103 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-user-edit"></i> {{ title }}</h4>
+                <p class="mb-0 small">Editing: {{ student.full_name|default:student.first_name }} {{ student.last_name }}</p>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="student_id" class="form-label">Registration Number</label>
+                            <input type="text" class="form-control" id="student_id"
+                                   value="{{ student.student_id }}" readonly>
+                            <div class="form-text">Registration number cannot be changed</div>
+                        </div>
+
+                        {% if show_year_field %}
+                        <div class="col-md-6 mb-3">
+                            <label for="year" class="form-label">Year *</label>
+                            <select class="form-select" id="year" name="year" required>
+                                <option value="">Select Year</option>
+                                {% for year_code, year_name in YEAR_CHOICES %}
+                                <option value="{{ year_code }}" {% if student.year == year_code %}selected{% endif %}>
+                                    {{ year_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% else %}
+                        <div class="col-md-6 mb-3">
+                            <label for="year" class="form-label">Year</label>
+                            <input type="text" class="form-control bg-light"
+                                   value="{{ student.get_year_display|default:'Year '|add:student.year }}" readonly>
+                            <input type="hidden" name="year" value="{{ student.year }}">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">First Name *</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name"
+                                   value="{{ student.first_name }}" required>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Last Name *</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name"
+                                   value="{{ student.last_name }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   value="{{ student.email|default:'' }}">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="phone" name="phone"
+                                   value="{{ student.phone|default:'' }}">
+                        </div>
+                    </div>
+
+                    {% if profile.role == 'hod' or is_admin %}
+                    <div class="mb-3">
+                        <label for="class_teacher" class="form-label">Assign to Teacher</label>
+                        <select class="form-select" id="class_teacher" name="class_teacher">
+                            <option value="">Not assigned</option>
+                            {% for teacher in teachers %}
+                            <option value="{{ teacher.id }}"
+                                {% if student.class_teacher.id == teacher.id %}selected{% endif %}>
+                                {{ teacher.get_full_name|default:teacher.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'student_list' %}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Student
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

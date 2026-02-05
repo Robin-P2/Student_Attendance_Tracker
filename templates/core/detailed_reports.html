@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+    }
+    .stat-card {
+        transition: transform 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .progress {
+        height: 20px;
+    }
+    .attendance-table td, .attendance-table th {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-chart-bar"></i> {{ title }}</h2>
+                <div class="btn-group">
+                    <a href="{% url 'export_report_csv' %}?type=detailed&start_date={{ start_date }}&end_date={{ end_date }}&year={{ year_filter }}"
+                       class="btn btn-success">
+                        <i class="fas fa-file-export me-1"></i> Export CSV
+                    </a>
+                    <a href="{% url 'monthly_reports' %}" class="btn btn-info">
+                        <i class="fas fa-calendar-alt me-1"></i> Monthly Reports
+                    </a>
+                    <a href="{% url 'student_wise_reports' %}" class="btn btn-warning">
+                        <i class="fas fa-user-graduate me-1"></i> Student Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card filter-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Year</label>
+                            <select class="form-select" name="year">
+                                <option value="">All Years</option>
+                                {% for code, name in YEAR_CHOICES %}
+                                <option value="{{ code }}" {% if year_filter == code %}selected{% endif %}>
+                                    {{ name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% if is_admin %}
+                        <div class="col-md-2">
+                            <label class="form-label">Teacher</label>
+                            <select class="form-select" name="teacher">
+                                <option value="">All Teachers</option>
+                                {% for teacher in teachers %}
+                                <option value="{{ teacher.id }}" {% if teacher_filter == teacher.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ teacher.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="status">
+                                <option value="">All Status</option>
+                                {% for code, name in STATUS_CHOICES %}
+                                <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>
+                                    {{ name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i> Apply Filters
+                                </button>
+                                <a href="{% url 'detailed_reports' %}" class="btn btn-secondary">
+                                    <i class="fas fa-redo me-1"></i> Reset Filters
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Records</h6>
+                            <h2 class="display-6">{{ total_records }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-database fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Present</h6>
+                            <h2 class="display-6">{{ present_count }} ({{ present_percentage }}%)</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Absent</h6>
+                            <h2 class="display-6">{{ absent_count }} ({{ absent_percentage }}%)</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-times-circle fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Late</h6>
+                            <h2 class="display-6">{{ late_count }} ({{ late_percentage }}%)</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Performance Table -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Student Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover attendance-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Year</th>
+                                    <th>Teacher</th>
+                                    <th>Total Days</th>
+                                    <th>Present</th>
+                                    <th>Attendance %</th>
+                                    <th>Performance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in student_stats %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ stat.student.student_id }}</strong><br>
+                                        <small>{{ stat.student.first_name }} {{ stat.student.last_name }}</small>
+                                    </td>
+                                    <td>{{ stat.year }}</td>
+                                    <td>{{ stat.teacher }}</td>
+                                    <td>{{ stat.total }}</td>
+                                    <td>{{ stat.present }}</td>
+                                    <td>{{ stat.percentage }}%</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar
+                                                {% if stat.percentage >= 90 %}bg-success
+                                                {% elif stat.percentage >= 75 %}bg-info
+                                                {% elif stat.percentage >= 60 %}bg-warning
+                                                {% else %}bg-danger{% endif %}"
+                                                style="width: {{ stat.percentage }}%">
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">No attendance data found.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Present: {{ present_count }} ({{ present_percentage }}%)</h6>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" style="width: {{ present_percentage }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <h6>Absent: {{ absent_count }} ({{ absent_percentage }}%)</h6>
+                        <div class="progress">
+                            <div class="progress-bar bg-danger" style="width: {{ absent_percentage }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <h6>Late: {{ late_count }} ({{ late_percentage }}%)</h6>
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" style="width: {{ late_percentage }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h6>Excused: {{ excused_count }} ({{ excused_percentage }}%)</h6>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" style="width: {{ excused_percentage }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Attendance -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Attendance</h5>
+                </div>
+                <div class="card-body">
+                    {% if attendances %}
+                    <div class="list-group">
+                        {% for attendance in attendances|slice:":5" %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ attendance.student.first_name }}</h6>
+                                <small>{{ attendance.date|date:"M d" }}</small>
+                            </div>
+                            <p class="mb-1">
+                                <span class="badge
+                                    {% if attendance.status == 'present' %}bg-success
+                                    {% elif attendance.status == 'absent' %}bg-danger
+                                    {% elif attendance.status == 'late' %}bg-warning
+                                    {% else %}bg-info{% endif %}">
+                                    {{ attendance.status|title }}
+                                </span>
+                                {% if attendance.remarks %}
+                                <small class="text-muted">- {{ attendance.remarks|truncatechars:30 }}</small>
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No recent attendance records.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

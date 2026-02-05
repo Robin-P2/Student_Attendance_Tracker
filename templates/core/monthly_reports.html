@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .month-selector .btn-month {
+        width: 100px;
+        margin: 2px;
+    }
+    .summary-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .attendance-badge {
+        font-size: 0.9em;
+        padding: 4px 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-calendar-alt"></i> {{ title }}</h2>
+                <div class="btn-group">
+                    <a href="{% url 'export_report_csv' %}?type=summary&month={{ report_month }}&year={{ report_year }}"
+                       class="btn btn-success">
+                        <i class="fas fa-file-export me-1"></i> Export CSV
+                    </a>
+                    <a href="{% url 'detailed_reports' %}" class="btn btn-primary">
+                        <i class="fas fa-chart-bar me-1"></i> Detailed Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month/Year Selector -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar me-2"></i>Select Month & Year</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Year</label>
+                            <select class="form-select" name="year">
+                                {% for y in year_choices %}
+                                <option value="{{ y }}" {% if report_year == y %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Month</label>
+                            <select class="form-select" name="month">
+                                {% for code, name in month_choices %}
+                                <option value="{{ code }}" {% if report_month == code %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-1"></i> Load Report
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Quick Month Selector -->
+                    <div class="mt-4">
+                        <h6 class="mb-3">Quick Select:</h6>
+                        <div class="d-flex flex-wrap month-selector">
+                            {% for code, name in month_choices %}
+                            <a href="?month={{ code }}&year={{ report_year }}"
+                               class="btn btn-sm btn-outline-primary btn-month {% if report_month == code %}active{% endif %}">
+                                {{ name|slice:":3" }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overall Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card summary-card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h6>Total Students</h6>
+                    <h2 class="display-6">{{ total_students }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card bg-success text-white">
+                <div class="card-body text-center">
+                    <h6>Avg Attendance</h6>
+                    <h2 class="display-6">{{ avg_attendance }}%</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card bg-info text-white">
+                <div class="card-body text-center">
+                    <h6>Overall %</h6>
+                    <h2 class="display-6">{{ overall_percentage }}%</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h6>Present Days</h6>
+                    <h2 class="display-6">{{ total_present }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Report Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-table me-2"></i>
+                            Monthly Attendance Summary
+                        </h5>
+                        <span class="badge bg-secondary">Total: {{ monthly_data|length }} students</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if monthly_data %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Year</th>
+                                    <th>Total Days</th>
+                                    <th>Present</th>
+                                    <th>Absent</th>
+                                    <th>Late</th>
+                                    <th>Excused</th>
+                                    <th>Attendance %</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in monthly_data %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td><strong>{{ data.student.student_id }}</strong></td>
+                                    <td>{{ data.student.first_name }} {{ data.student.last_name }}</td>
+                                    <td>Year {{ data.student.year }}</td>
+                                    <td>{{ data.total_days }}</td>
+                                    <td>
+                                        <span class="badge bg-success attendance-badge">{{ data.present_days }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger attendance-badge">{{ data.absent_days }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning attendance-badge">{{ data.late_days }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info attendance-badge">{{ data.excused_days }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                                                <div class="progress-bar
+                                                    {% if data.attendance_percentage >= 90 %}bg-success
+                                                    {% elif data.attendance_percentage >= 75 %}bg-info
+                                                    {% elif data.attendance_percentage >= 60 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}"
+                                                    style="width: {{ data.attendance_percentage }}%">
+                                                </div>
+                                            </div>
+                                            <span>{{ data.attendance_percentage }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if data.attendance_percentage >= 90 %}
+                                        <span class="badge bg-success">Excellent</span>
+                                        {% elif data.attendance_percentage >= 75 %}
+                                        <span class="badge bg-info">Good</span>
+                                        {% elif data.attendance_percentage >= 60 %}
+                                        <span class="badge bg-warning">Fair</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Poor</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Data Available</h4>
+                        <p class="text-muted">No attendance records found for {{ month_choices|get_item:report_month }} {{ report_year }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Attendance Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Present Days: {{ total_present }}</h6>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-success" style="width:
+                                    {% if total_present|add:total_absent|add:total_late|add:total_excused > 0 %}
+                                    {{ total_present|floatformat:0 }}
+                                    {% else %}0{% endif %}%">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Absent Days: {{ total_absent }}</h6>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-danger" style="width:
+                                    {% if total_present|add:total_absent|add:total_late|add:total_excused > 0 %}
+                                    {{ total_absent|floatformat:0 }}
+                                    {% else %}0{% endif %}%">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Late Days: {{ total_late }}</h6>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-warning" style="width:
+                                    {% if total_present|add:total_absent|add:total_late|add:total_excused > 0 %}
+                                    {{ total_late|floatformat:0 }}
+                                    {% else %}0{% endif %}%">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Excused Days: {{ total_excused }}</h6>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-info" style="width:
+                                    {% if total_present|add:total_absent|add:total_late|add:total_excused > 0 %}
+                                    {{ total_excused|floatformat:0 }}
+                                    {% else %}0{% endif %}%">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Performance Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="p-3 border rounded">
+                                <h6>Average Attendance</h6>
+                                <h3 class="text-primary">{{ avg_attendance }}%</h3>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="p-3 border rounded">
+                                <h6>Overall Percentage</h6>
+                                <h3 class="text-success">{{ overall_percentage }}%</h3>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="alert
+                                {% if overall_percentage >= 90 %}alert-success
+                                {% elif overall_percentage >= 75 %}alert-info
+                                {% elif overall_percentage >= 60 %}alert-warning
+                                {% else %}alert-danger{% endif %}">
+                                <i class="fas fa-info-circle me-2"></i>
+                                {% if overall_percentage >= 90 %}
+                                Excellent overall attendance for this month!
+                                {% elif overall_percentage >= 75 %}
+                                Good overall attendance for this month.
+                                {% elif overall_percentage >= 60 %}
+                                Fair attendance. Some improvement needed.
+                                {% else %}
+                                Low attendance. Immediate attention required.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

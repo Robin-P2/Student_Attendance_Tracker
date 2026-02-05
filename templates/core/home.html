@@ -1,0 +1,37 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Welcome - Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center min-vh-50">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg border-0">
+            <div class="card-body text-center p-5">
+                <i class="fas fa-user-check fa-4x text-primary mb-4"></i>
+                <h1 class="display-5 fw-bold mb-3">Student Attendance Tracker</h1>
+                <div class="d-grid gap-3 d-md-flex justify-content-md-center">
+                    <a href="{% url 'login' %}" class="btn btn-primary btn-lg px-4 me-md-2">
+                        <i class="fas fa-sign-in-alt me-2"></i>
+                        Login
+                    </a>
+                </div>
+            </div>
+        </div>
+
+
+
+<style>
+    .min-vh-50 {
+        min-height: 70vh;
+    }
+    
+    .card {
+        border-radius: 15px;
+        transition: transform 0.3s;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+{% endblock %}
